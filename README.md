@@ -2,6 +2,10 @@
 
 See which Codex Desktop sessions are running, waiting for you, or have unread results—all in one local window.
 
+[![Download for Windows](https://img.shields.io/badge/Download%20for%20Windows-0969DA?style=for-the-badge)](https://github.com/heyyowtfyyh/Agent-Inbox-Desktop/releases/latest/download/Agent-Inbox-Windows-x64.zip)
+
+Windows x64 portable ZIP · [Release notes](https://github.com/heyyowtfyyh/Agent-Inbox-Desktop/releases/latest)
+
 Agent Inbox is a Windows desktop companion for working with multiple agents across projects.
 It groups sessions by project so you can find work that needs attention and return to the relevant Codex conversation or VS Code workspace.
 
