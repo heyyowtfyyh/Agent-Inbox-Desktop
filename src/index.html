@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Agent Inbox</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="renderer.js"></script>
+</head>
+<body>
+  <header class="titlebar">
+    <div class="identity"><img class="app-mark" src="assets/app-icon.svg" width="29" height="29" alt="">Agent Inbox</div>
+    <div class="titlebar-actions">
+      <label class="filter avatar-picker">
+        <span class="avatar-picker-label">Avatar</span>
+        <select id="avatar-theme" aria-label="Avatar theme" disabled>
+          <option value="open-source">Open source</option>
+        </select>
+        <img src="assets/chevron.svg" alt="">
+      </label>
+      <div class="window-controls" aria-label="Window controls">
+        <button type="button" data-window="minimize" aria-label="Minimize"><img src="assets/minimize.svg" alt=""></button>
+        <button type="button" data-window="maximize" aria-label="Maximize or restore"><img src="assets/maximize.svg" alt=""></button>
+        <button type="button" data-window="close" aria-label="Close"><img src="assets/close.svg" alt=""></button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <header class="overview">
+      <div><h1>Session inbox</h1><p>Find the Codex session that needs you.</p></div>
+      <span id="monitoring-status" class="monitoring-badge" data-status="connecting" role="status" aria-live="polite" aria-atomic="true">
+        <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+          <circle class="monitoring-dot" cx="8" cy="8" r="3" fill="currentColor"/>
+          <g class="monitoring-warning" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 2 15 14H1Z"/><path d="M8 6v3m0 2v.25"/>
+          </g>
+        </svg>
+        <span id="monitoring-label">Connecting…</span>
+      </span>
+    </header>
+    <p id="monitoring-detail" class="monitoring-detail" hidden></p>
+    <section class="summary" aria-label="Session counts">
+      <div class="metric"><span><img class="running-spinner" src="assets/running-spinner.svg" alt="">Running</span><strong id="running-count">—</strong></div>
+      <div class="metric"><span><img src="assets/attention-dot.svg" alt="">Needs attention</span><strong id="attention-count">—</strong></div>
+      <div class="metric"><span><img src="assets/unread-dot.svg" alt="">Unread</span><strong id="unread-count">—</strong></div>
+    </section>
+    <div class="toolbar">
+      <div class="view-switch" role="group" aria-label="Session view">
+        <button type="button" data-view="inbox" aria-pressed="true">Inbox</button>
+        <button type="button" data-view="all" aria-pressed="false">All sessions</button>
+      </div>
+      <label class="filter">
+        <select id="status-filter" aria-label="Filter by status">
+          <option value="all">All statuses</option>
+          <option value="running">Running</option>
+          <option value="attention">Needs attention</option>
+          <option value="unread">Unread</option>
+          <option value="error">Error</option>
+          <option value="idle">Idle</option>
+          <option value="unknown">Unknown</option>
+        </select>
+        <img src="assets/chevron.svg" alt="">
+      </label>
+    </div>
+    <section id="sessions" class="sessions" aria-label="Sessions"></section>
+    <footer><span>Local session data</span><span id="source-info">Reading sessions…</span></footer>
+  </main>
+  <div id="session-menu" class="session-menu" hidden>
+    <button type="button" id="toggle-pin"><img src="assets/push-pin.svg" alt=""><span>Pin</span></button>
+    <button type="button" id="open-vscode"><img src="assets/vscode.svg" alt="">Open in VS Code</button>
+  </div>
+  <dialog id="navigation-message" aria-labelledby="navigation-title">
+    <h2 id="navigation-title"></h2>
+    <p id="navigation-detail"></p>
+    <code id="navigation-reference"></code>
+    <form method="dialog"><button type="submit">Close</button></form>
+  </dialog>
+</body>
+</html>

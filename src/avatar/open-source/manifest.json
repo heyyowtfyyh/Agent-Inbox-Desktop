@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "render": "paired",
+  "shapes": [
+    "mallow",
+    "hexagon",
+    "triangle",
+    "bloom",
+    "squircle",
+    "circle",
+    "pebble"
+  ]
+}

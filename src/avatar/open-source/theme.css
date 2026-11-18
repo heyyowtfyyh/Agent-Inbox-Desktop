@@ -1,0 +1,10 @@
+.avatar-open-source > img {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(.38);
+}
+.avatar-button .avatar-open-source > img { transform: translate(-50%, -50%) scale(.46); }
+.session-row .avatar-open-source > img { transform: translate(-50%, -50%) scale(.28); }

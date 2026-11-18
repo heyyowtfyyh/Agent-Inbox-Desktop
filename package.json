@@ -1,0 +1,29 @@
+{
+  "name": "agent-inbox",
+  "version": "0.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "main": "src/main.js",
+  "files": ["src/", "scripts/", "test/", "docs/", "AGENTS.md", "PROJECT.md", ".env.example"],
+  "scripts": {
+    "start": "node scripts/start.js",
+    "build:windows": "node scripts/build-windows.js",
+    "demo": "node scripts/start.js --sample",
+    "test": "node --test",
+    "test:error-ui": "node scripts/check-error-ui.js",
+    "test:avatar-ui": "node scripts/check-avatar-ui.js",
+    "test:taskbar": "node scripts/check-taskbar.js",
+    "check:local": "node scripts/check-local.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.2.0",
+    "@fontsource/ibm-plex-sans": "^5.2.0"
+  },
+  "devDependencies": {
+    "electron": "45.2.3"
+  }
+}
