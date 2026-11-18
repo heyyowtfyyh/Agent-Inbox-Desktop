@@ -66,6 +66,12 @@ See [After a Codex Desktop update](#after-a-codex-desktop-update) for a prompt y
 1. Extract `Agent-Inbox-Windows-x64.zip` and keep the entire `Agent Inbox` folder together.
 2. Open Codex Desktop, then double-click `Agent Inbox.exe` in the extracted folder.
 
+> [!NOTE]
+> The v0.1.0 portable executable is unsigned. On first launch, Microsoft Defender
+> SmartScreen may show **Windows protected your PC** and list an unknown publisher.
+> Use the **Download for Windows** button above to get the ZIP from this repository.
+> [Microsoft's SmartScreen guidance](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation)
+
 The ZIP includes Electron and runs without a separate Node.js installation. Closing the Inbox window stops monitoring. Pins and avatar preferences are stored under `%APPDATA%\agent-inbox` and carry over when you replace the app folder.
 
 To create a desktop shortcut, first move the extracted folder to the location where you want to keep it. In File Explorer, right-click `Agent Inbox.exe`, select **Show more options** if it appears, then choose **Send to** → **Desktop (create shortcut)**. Recreate the shortcut if you move the folder later. See [Microsoft's desktop shortcut instructions](https://support.microsoft.com/en-us/windows/experience/personalization/customize-the-desktop-icons-in-windows).
