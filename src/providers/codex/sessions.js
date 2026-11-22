@@ -6,6 +6,8 @@ import { createDiagnosticReporter } from './diagnostics.js';
 
 const requiredColumns = ['id', 'cwd', 'originator', 'source', 'archived', 'attached_thread_parent_id'];
 const unavailable = { runtimeAvailable: false, unreadAvailable: false, sample: false, diagnostic: null };
+// Codex Desktop 26.1117 uses durable receipts for chats created from this rollout onward.
+const readReceiptCutoffSeconds = Date.parse('2026-11-10T08:45:10Z') / 1000;
 
 async function readOptional(file, reader) {
   try {
@@ -20,6 +22,23 @@ function sameBytes(first, second) {
   return first === null ? second === null : second !== null && first.equals(second);
 }
 
+function savedUnreadProjection(database, threadColumns) {
+  if (!threadColumns.has('created_at')) return 'NULL';
+  const columns = new Map(database.prepare('PRAGMA table_info(thread_read_receipts)').all()
+    .map(row => [row.name, row.pk]));
+  if (columns.get('thread_id') !== 1 || [...columns.values()].some(position => position > 1)
+    || !columns.has('first_unread_turn') || !columns.has('revision')) return 'NULL';
+  return `(
+    SELECT CASE
+      WHEN first_unread_turn IS NULL THEN 0
+      WHEN typeof(first_unread_turn) = 'text' AND length(first_unread_turn) > 0 THEN 1
+    END
+    FROM thread_read_receipts
+    WHERE thread_id = threads.id AND typeof(revision) = 'text' AND length(revision) > 0
+      AND typeof(threads.created_at) = 'integer' AND threads.created_at >= ${readReceiptCutoffSeconds}
+  )`;
+}
+
 function readThreads(database) {
   const columns = new Set(database.prepare('PRAGMA table_info(threads)').all().map(row => row.name));
   if (requiredColumns.some(column => !columns.has(column))) {
@@ -31,15 +50,18 @@ function readThreads(database) {
     .filter(expression => columns.has(expression.split(' ')[0]));
   const title = names.length ? `COALESCE(${[...names, "'Untitled session'"].join(', ')})` : "'Untitled session'";
   const time = times.length ? `COALESCE(${[...times, 'NULL'].join(', ')})` : 'NULL';
+  const savedUnread = new Map();
   const rows = database.prepare(`
-    SELECT id, cwd, ${title} AS title, ${time} AS lastActivity
+    SELECT id, cwd, ${title} AS title, ${time} AS lastActivity,
+      ${savedUnreadProjection(database, columns)} AS savedUnread
     FROM threads
     WHERE originator = 'Codex Desktop' AND source = 'vscode'
       AND archived = 0 AND attached_thread_parent_id IS NULL
     ORDER BY lastActivity DESC, id
   `).all();
 
-  return rows.filter(row => typeof row.id === 'string' && row.id.length > 0).map(row => {
+  const sessions = rows.filter(row => typeof row.id === 'string' && row.id.length > 0).map(row => {
+    if (row.savedUnread === 0 || row.savedUnread === 1) savedUnread.set(row.id, row.savedUnread === 1);
     const cwd = typeof row.cwd === 'string' && row.cwd.trim() ? row.cwd : null;
     const normalized = cwd ? path.win32.normalize(cwd) : null;
     return {
@@ -54,6 +76,7 @@ function readThreads(database) {
       unread: null,
     };
   });
+  return { sessions, savedUnread };
 }
 
 export function createSessionReader(codexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), { onDiagnostic } = {}) {
@@ -91,7 +114,7 @@ export function createSessionReader(codexHome = process.env.CODEX_HOME || path.j
         const database = new DatabaseSync(copy, { readOnly: true });
         try {
           database.exec('PRAGMA query_only = ON');
-          cache = { ...unavailable, source: 'ready', sessions: readThreads(database) };
+          cache = { ...unavailable, source: 'ready', ...readThreads(database) };
           if (!cache.sessions.length) report('NO_MATCHING_SESSIONS');
           revision = fingerprint;
         } finally {

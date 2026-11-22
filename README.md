@@ -9,17 +9,18 @@ Windows x64 portable ZIP · [Release notes](https://github.com/heyyowtfyyh/Agent
 Agent Inbox is a Windows desktop companion for working with multiple agents across projects.
 It groups sessions by project so you can find work that needs attention and return to the relevant Codex conversation or VS Code workspace.
 
-[Quick start](#quick-start) · [Install with an agent](#install-with-an-agent) · [Local configuration](#local-configuration) · [Troubleshooting](#troubleshooting) · [Adding providers](#adding-providers)
+[Quick start](#quick-start) · [Install with an agent](#install-with-an-agent) · [Codex Hooks setup](#codex-hooks-setup) · [Local configuration](#local-configuration) · [Troubleshooting](#troubleshooting) · [Adding providers](#adding-providers)
 
 ## Local operation and privacy
 
-Agent Inbox runs on your computer and monitors Codex Desktop through its local database and Windows interprocess communication.
+Agent Inbox runs on your computer and monitors Codex Desktop through its local database, Windows interprocess communication (IPC), and optional Codex Hooks.
 It requires no separate account or API key. The current application has no telemetry, analytics, or functionality for uploading session data to external servers.
 The interface, fonts, and icons are bundled locally; monitoring does not depend on a cloud backend.
 
 - Installing dependencies requires internet access. Once installed, Agent Inbox's local monitoring does not require a connection to external services.
 - The original Codex database is only read. Agent Inbox creates a copy in the system temporary directory and removes it after reading, avoiding SQLite sidecar writes to the original database.
 - Agent Inbox does not reply to conversations, approve actions, or mark Codex conversations as read.
+- If you enable Hooks, the receiver writes event types, session, turn and tool/question IDs, and timestamps to `%LOCALAPPDATA%\Agent Inbox\codex-hooks\hook-events.sqlite`. It does not save prompts, answers, tool results, or project paths. The receiver prunes events older than seven days as new events arrive.
 - Pins and avatar preferences are stored in Electron's local user data directory. Path overrides can be stored in a Git-ignored `.env` file.
 - When you use a navigation action, Agent Inbox passes a conversation link to Codex Desktop or a project path to your local VS Code installation.
 
@@ -39,12 +40,12 @@ Unread is an independent flag and can coexist with Running. An unread result doe
 
 | State | Meaning |
 | --- | --- |
-| Running | Native signals indicate that work is in progress. |
+| Running | A live signal indicates that work is in progress. |
 | User input / Needs attention | Waiting for an answer or action approval. |
-| Idle | Native signals indicate that the session is idle. |
+| Idle | A live signal indicates that the session is idle. |
 | Error | A native `systemError` state was received. |
-| Unknown | Sufficient native state evidence has not been received, has been lost, or cannot be interpreted. |
-| Unread | The native Codex unread flag is true. |
+| Unknown | There is insufficient evidence to determine the session state. |
+| Unread | Codex reports the conversation as unread through IPC or a supported saved read receipt. |
 
 ## Requirements
 
@@ -54,10 +55,9 @@ Unread is an independent flag and can coexist with Running. An unread result doe
 - VS Code: optional; needed only for opening project directories in the editor.
 
 Only the Codex provider is implemented. Claude Code and monitoring sessions on other hosts are not currently supported.
-The integration depends on Codex's local data formats and IPC signals; compatibility with every version is not guaranteed.
+The integration depends on Codex's local data formats, IPC signals, and supported Hook events.
 
-**Codex Desktop updates may interrupt monitoring.** If statuses stop updating after an update, ask your coding agent to diagnose the connection and restore monitoring; a provider compatibility update may be needed.
-See [After a Codex Desktop update](#after-a-codex-desktop-update) for a prompt you can copy.
+**Codex Desktop updates may interrupt IPC monitoring.** You can configure [Codex Hooks](#codex-hooks-setup) for live session status or use the [monitoring repair prompt](#after-a-codex-desktop-update) to diagnose the connection.
 
 ## Quick start
 
@@ -131,6 +131,40 @@ Finish by reporting which local settings changed, the result of each check, and 
 
 </details>
 
+## Codex Hooks setup
+
+Agent Inbox includes a Windows Hook receiver. You choose where to configure it and review each Hook in Codex. The portable ZIP uses its bundled runtime.
+
+1. Find the receiver in your installation. In the ZIP it is `record-codex-hook.cmd` next to `Agent Inbox.exe`. When running from source it is `scripts\record-codex-hook.cmd`, available after `npm.cmd ci`.
+2. For one project, use `.codex/hooks.json` at the root of a trusted project. For all your local Codex projects, use `$CODEX_HOME/hooks.json` (by default `%USERPROFILE%\.codex\hooks.json` on Windows). Choose one scope for these entries so they run once per event. Merge them into any existing `hooks` object and preserve other handlers.
+3. Replace the example command paths with the absolute paths on your machine. Keep the quotes around the receiver path and the JSON escaping for backslashes. If you move Agent Inbox, update the path and review the changed Hooks again.
+4. Open a new chat in Codex Desktop. Select **Review hooks** in the composer or go to **Settings → Hooks**. Check the command and trust the Agent Inbox entries you want to run. [Codex Hook trust documentation](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks)
+5. Open Agent Inbox and send a new message in a configured local Codex Desktop chat. Check **All sessions** for Running, then Idle after the turn ends. To verify attention states, leave a real approval card or an input card open while checking Agent Inbox. To check Unread, switch to a different Codex chat before the turn ends. Use a recent chat if you are relying on saved read receipts.
+
+`hooks.json` example for the portable ZIP
+
+```json
+{
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "C:\\Windows\\System32\\cmd.exe /d /v:off /c call \"C:\\Tools\\Agent Inbox\\record-codex-hook.cmd\"", "timeout": 3 }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "C:\\Windows\\System32\\cmd.exe /d /v:off /c call \"C:\\Tools\\Agent Inbox\\record-codex-hook.cmd\"", "timeout": 3 }] }],
+    "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "C:\\Windows\\System32\\cmd.exe /d /v:off /c call \"C:\\Tools\\Agent Inbox\\record-codex-hook.cmd\"", "timeout": 3 }] }],
+    "PreModelRequest": [{ "hooks": [{ "type": "command", "command": "C:\\Windows\\System32\\cmd.exe /d /v:off /c call \"C:\\Tools\\Agent Inbox\\record-codex-hook.cmd\"", "timeout": 3 }] }],
+    "PreToolUse": [{ "matcher": "^request_user_input(_async)?$", "hooks": [{ "type": "command", "command": "C:\\Windows\\System32\\cmd.exe /d /v:off /c call \"C:\\Tools\\Agent Inbox\\record-codex-hook.cmd\"", "timeout": 3 }] }],
+    "PostToolUse": [{ "matcher": "^request_user_input(_async)?$", "hooks": [{ "type": "command", "command": "C:\\Windows\\System32\\cmd.exe /d /v:off /c call \"C:\\Tools\\Agent Inbox\\record-codex-hook.cmd\"", "timeout": 3 }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "C:\\Windows\\System32\\cmd.exe /d /v:off /c call \"C:\\Tools\\Agent Inbox\\record-codex-hook.cmd\"", "timeout": 3 }] }],
+    "Interrupt": [{ "hooks": [{ "type": "command", "command": "C:\\Windows\\System32\\cmd.exe /d /v:off /c call \"C:\\Tools\\Agent Inbox\\record-codex-hook.cmd\"", "timeout": 3 }] }],
+    "SessionEnd": [{ "hooks": [{ "type": "command", "command": "C:\\Windows\\System32\\cmd.exe /d /v:off /c call \"C:\\Tools\\Agent Inbox\\record-codex-hook.cmd\"", "timeout": 3 }] }]
+  }
+}
+```
+
+To have a coding agent help with step 2, give it the affected project or user scope and this README. Ask it to substitute the installed receiver's absolute path, merge the example with your existing Hooks, and show you the changes so you can review and trust them in Codex.
+
+Hook events supply Running, waiting for approval, User input, and Idle for chats that send them. An approval event can also reflect automated review. Unread comes from Codex IPC or a compatible saved read receipt. Older chats may have no usable saved receipt. The app falls back to Unknown when it lacks reliable evidence. A Hook-only active state expires after five minutes without a qualifying update.
+
+To stop sending events, disable these handlers in **Settings → Hooks** or remove their entries from your `hooks.json`.
+
 ## Local configuration
 
 If automatic detection does not work for your setup, copy [.env.example](.env.example) to `.env` in the project root when running from source, or next to `Agent Inbox.exe` when using the portable ZIP.
@@ -161,7 +195,7 @@ The public source does not require private avatar assets. See [Avatar themes](do
 
 ## Troubleshooting
 
-Check the top-right monitoring badge first. Green **Monitoring** means native state has been received; amber indicates connection or recovery in progress. A red **Monitoring unavailable** badge and the message below the heading explain permission or compatibility failures.
+Check the top-right monitoring badge first. **Monitoring** means IPC state has been received. **Monitoring via Hooks** indicates a local Hook signal. **Unread only** means saved read receipts are available while the IPC pipe is unavailable. A red **Monitoring unavailable** badge and the message below the heading explain connection, permission, or compatibility failures.
 An individual Unknown or Error session does not mean the monitoring source has failed. Demo mode shows **Sample data**.
 
 Open a local conversation in Codex Desktop, then run this from the project root:
@@ -170,8 +204,8 @@ Open a local conversation in Codex Desktop, then run this from the project root:
 npm.cmd run check:local
 ```
 
-The check discovers sessions and monitors read-only for about eight seconds. It prints session counts, status totals, the number of sessions with native unread evidence, and update counts.
-Diagnostic messages contain no raw paths, session IDs, or conversation content. The check fails if no sessions or verifiable native signals are available.
+The check discovers sessions and observes them for about eight seconds. It prints monitoring status, session and state counts, the number of sessions with unread evidence, and update counts.
+Diagnostic messages contain no raw paths, session IDs, or conversation content. The check fails if it finds no sessions or no live signals.
 
 | Diagnostic or symptom | What to check |
 | --- | --- |
@@ -179,7 +213,7 @@ Diagnostic messages contain no raw paths, session IDs, or conversation content. 
 | `DATABASE_ACCESS_DENIED` | Check access permissions for the data directory and system temporary directory. |
 | `NO_MATCHING_SESSIONS` | Confirm that supported local desktop sessions exist. If they remain missing, report the Codex version. |
 | `UNSUPPORTED_SCHEMA` / `STREAM_VERSION_UNSUPPORTED` / `READ_VERSION_UNSUPPORTED` | Report the Codex version and diagnostic code. These are format or protocol compatibility issues that require provider changes. |
-| `PIPE_UNAVAILABLE` / `PIPE_CONNECT_TIMEOUT` / handshake failure | Confirm that Codex Desktop is running and check any pipe override. Timed-out connections are retried automatically. |
+| `PIPE_UNAVAILABLE` / `PIPE_CONNECT_TIMEOUT` / handshake failure | Confirm that Codex Desktop is running and check any pipe override. If your version no longer exposes the pipe, use [Codex Hooks setup](#codex-hooks-setup). |
 | `PIPE_ACCESS_DENIED` | Confirm both apps run under the same Windows user account and check sandbox or permission restrictions. |
 | `DATABASE_BUSY` / `PIPE_DISCONNECTED` | The app retries automatically. Keep the diagnostic code if the problem persists. |
 | Every session shows Unknown | Check diagnostics and run the local check. An individual unloaded session or one without sufficient native evidence can also show Unknown. |

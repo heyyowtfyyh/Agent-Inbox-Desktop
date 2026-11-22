@@ -44,6 +44,8 @@ try {
   await copyFile(path.join(project, 'LICENSE'), path.join(bundle, 'LICENSE'), constants.COPYFILE_EXCL);
   await copyFile(path.join(project, '.env.example'), path.join(bundle, '.env.example'), constants.COPYFILE_EXCL);
   await copyFile(path.join(project, 'scripts', 'portable-readme.txt'), path.join(bundle, 'README.txt'), constants.COPYFILE_EXCL);
+  await copyFile(path.join(project, 'scripts', 'record-codex-hook.cmd'),
+    path.join(bundle, 'record-codex-hook.cmd'), constants.COPYFILE_EXCL);
 
   const app = path.join(bundle, 'resources', 'app');
   await mkdir(app, { recursive: true });

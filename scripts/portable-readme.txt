@@ -13,6 +13,8 @@ Pins and avatar preferences are saved under %APPDATA%\agent-inbox. If you use
 local overrides, copy .env.example to .env next to Agent Inbox.exe. Keep a copy
 of your .env when replacing the extracted folder with a newer version.
 
-If live status stops updating, check the message below the Inbox heading.
-A Codex Desktop update can change the local monitoring protocol. See the
-repository README for troubleshooting and the coding agent repair prompt.
+Optional Codex Hooks can provide live session status when the local Codex
+monitoring pipe is unavailable. The receiver is record-codex-hook.cmd next to
+Agent Inbox.exe. See "Codex Hooks setup" in the repository README for a
+hooks.json example and steps to review and trust the Hooks yourself in Codex.
+If you move the folder after setup, update the command path in hooks.json.
