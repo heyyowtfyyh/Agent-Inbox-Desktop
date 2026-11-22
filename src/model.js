@@ -27,9 +27,14 @@ const monitoringDetails = {
 export function monitoringView(monitoring) {
   const labels = {
     connected: 'Monitoring', connecting: 'Connecting…', reconnecting: 'Reconnecting…',
+    hooks: 'Monitoring via Hooks', limited: 'Unread only',
     unavailable: 'Monitoring unavailable', idle: 'No local sessions', sample: 'Sample data',
   };
   const status = Object.hasOwn(labels, monitoring?.status) ? monitoring.status : 'connecting';
+  if (status === 'limited') return {
+    status, label: labels[status],
+    detail: 'Showing saved unread status where available. To restore live status, see Codex Hooks setup in the README.',
+  };
   const detail = ['reconnecting', 'unavailable'].includes(status)
     ? (Object.hasOwn(monitoringDetails, monitoring?.code) ? monitoringDetails[monitoring.code]
       : 'Monitoring is unavailable. Agent Inbox will try again automatically.') : '';

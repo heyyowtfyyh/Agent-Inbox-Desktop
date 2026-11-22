@@ -152,7 +152,7 @@ function avatar(session) {
 }
 
 function runtimeBadge(runtime, compact) {
-  const label = compact && (runtime === 'approval' || runtime === 'input')
+  const label = compact && runtime === 'input'
     ? 'User input' : statusLabels[runtime] ?? 'Unknown';
   const node = element('span', `badge runtime-${runtime}`, label);
   node.title = label;

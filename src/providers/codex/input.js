@@ -1,7 +1,7 @@
 const replyStart = '<send_user_message_question_reply>';
 const replyEnd = '</send_user_message_question_reply>';
 
-function replyIds(value) {
+export function replyIds(value) {
   const text = typeof value === 'string' ? value.trim() : '';
   if (!text.startsWith(replyStart) || !text.endsWith(replyEnd)) return [];
   try {
@@ -14,6 +14,10 @@ function replyIds(value) {
   } catch {
     return [];
   }
+}
+
+export function asyncQuestionId(callId, index) {
+  return JSON.stringify(['request_user_input_async', callId, index]);
 }
 
 const string = value => typeof value === 'string' ? value : null;
@@ -118,5 +122,5 @@ export function hasPendingInput(history) {
     }
   }
   return active.items.some(item => item?.type === 'agentMessage' && item.id
-    && item.questions?.some((_, index) => !answered.has(JSON.stringify(['request_user_input_async', item.id, index]))));
+    && item.questions?.some((_, index) => !answered.has(asyncQuestionId(item.id, index))));
 }

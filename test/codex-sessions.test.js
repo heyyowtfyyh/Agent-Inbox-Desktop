@@ -61,3 +61,41 @@ test('unsupported schemas and valid but unmatched sources have distinct diagnost
   assert.equal(f.diagnostics.at(-1).code, 'NO_MATCHING_SESSIONS');
   assert.ok(!JSON.stringify(f.diagnostics).includes('future-desktop'));
 });
+
+test('only explicit receipts in the desktop rollout are read, including changes in the WAL', async t => {
+  const f = fixture(t);
+  f.database();
+  const db = new DatabaseSync(f.file);
+  try {
+    db.exec(`
+      PRAGMA journal_mode = WAL;
+      ALTER TABLE threads ADD COLUMN created_at INTEGER;
+      CREATE TABLE thread_read_receipts (thread_id TEXT PRIMARY KEY, first_unread_turn TEXT, revision TEXT);
+    `);
+    const missing = '00000000-0000-4000-8000-000000000001';
+    const unread = '00000000-0000-4000-8000-000000000002';
+    const read = '00000000-0000-4000-8000-000000000003';
+    const old = '00000000-0000-4000-8000-000000000004';
+    const invalid = '00000000-0000-4000-8000-000000000005';
+    const current = Date.parse('2026-11-10T08:45:10Z') / 1000;
+    db.prepare('UPDATE threads SET created_at = ? WHERE id = ?').run(current, missing);
+    const insert = db.prepare('INSERT INTO threads VALUES (?, ?, ?, ?, 0, NULL, ?)');
+    for (const [id, time] of [[unread, current], [read, current], [old, current - 1], [invalid, current]]) {
+      insert.run(id, f.home, 'Codex Desktop', 'vscode', time);
+    }
+    const receipt = db.prepare('INSERT INTO thread_read_receipts VALUES (?, ?, ?)');
+    receipt.run(unread, 'first-turn', 'revision');
+    receipt.run(read, null, 'revision');
+    receipt.run(old, 'first-turn', 'revision');
+    receipt.run(invalid, 'first-turn', '');
+    const snapshot = await f.read();
+    assert.equal(snapshot.sessions.length, 5);
+    assert.deepEqual(snapshot.savedUnread, new Map([[unread, true], [read, false]]));
+    assert.ok(snapshot.sessions.every(session => session.unread === null));
+
+    db.prepare('UPDATE thread_read_receipts SET first_unread_turn = NULL WHERE thread_id = ?').run(unread);
+    assert.equal((await f.read()).savedUnread.get(unread), false);
+  } finally {
+    db.close();
+  }
+});

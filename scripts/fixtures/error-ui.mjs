@@ -27,9 +27,9 @@ function change(value, version = 13) {
   send({ type: 'broadcast', method: 'thread-stream-state-changed', version,
     sourceClientId: 'simulated-owner', params: { hostId: 'local', conversationId: id, change: value } });
 }
-function snapshot() {
+function snapshot(extra = {}) {
   change({ type: 'snapshot', revision: ++revision, conversationState: {
-    threadRuntimeStatus: { type: current, activeFlags: [] }, hasUnreadTurn: unread, requests: [], turns: [],
+    threadRuntimeStatus: { type: current, activeFlags: [] }, hasUnreadTurn: unread, requests: [], turns: [], ...extra,
   } });
 }
 function patch(type, whole = false) {
@@ -125,6 +125,30 @@ app.on('browser-window-created', (_, window) => {
       assert.equal(await evaluate(`document.querySelectorAll('.session-card').length`), 0);
       await filter('all');
       checks.push('type patch: Error recovers to Running and leaves Error filter');
+
+      snapshot({ requests: [{ method: 'item/commandExecution/requestApproval' }] });
+      await waitFor(`document.querySelector('.session-card .runtime-approval') !== null`);
+      assert.equal(await evaluate(`document.querySelector('.session-card .runtime-approval').textContent`), 'Waiting for approval');
+      window.setSize(350, 740);
+      await waitFor(`window.innerWidth <= 350`);
+      assert.equal(await evaluate(`(() => {
+        const badge = document.querySelector('.session-card .runtime-approval');
+        const card = badge.closest('.session-card').getBoundingClientRect();
+        const bounds = badge.getBoundingClientRect();
+        return bounds.left >= card.left && bounds.right <= card.right;
+      })()`), true);
+      window.setSize(600, 740);
+      snapshot();
+      await waitFor(`document.querySelector('.session-card .runtime-running') !== null`);
+      snapshot({ turns: [{ turnId: 'input-turn', status: 'inProgress', items: [
+        { type: 'agentMessage', id: 'question', questions: [{}] },
+      ] }] });
+      await waitFor(`document.querySelector('.session-card .runtime-input') !== null`);
+      assert.equal(await evaluate(`document.querySelector('.session-card .runtime-input').textContent`), 'User input');
+      snapshot();
+      await waitFor(`document.querySelector('.session-card .runtime-running') !== null`);
+      checks.push('Inbox distinguishes approval from user input and the approval badge fits at the minimum width');
+
       patch('systemError', true);
       await waitFor(`document.querySelectorAll('.session-card .runtime-error').length === 1`);
       patch('idle', true);

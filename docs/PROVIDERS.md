@@ -7,9 +7,10 @@ local diagnostic use this entry point. Codex discovery, runtime projection,
 unread evidence, stream lifecycle and conversation URL construction stay inside
 the provider. Its implementation files are:
 
-- `sessions.js`: read-only metadata snapshots and sample sessions.
+- `sessions.js`: read-only metadata snapshots, compatible saved unread receipts, and sample sessions.
 - `runtime.js`: native stream, reconnects, patches, resynchronization and availability.
 - `input.js`: unanswered input-card detection.
+- `hooks.js` and `record-hook.js`: local event journal, status projection, and optional command receiver.
 
 The main process owns Electron, snapshot IPC, local pins, VS Code navigation,
 taskbar refresh scheduling and application shutdown. The renderer, grouping,
@@ -38,7 +39,7 @@ change status projection, select other database versions, or migrate Codex data.
 | `readSnapshot()` | Promise of normalized metadata and current supported native state. Refreshes the set of tracked IDs. |
 | `hasSession(id)` | Promise of discovery membership, including known cached sessions. Does not start native tracking; used to validate pins. |
 | `conversationTarget(snapshot, id)` | Validated URL or `null` for a known session. Returns no target in sample mode, for stale sources, disabled deep links, missing IDs or unsafe IDs. Electron opens the URL only after a user action. |
-| `stop()` | Idempotently stops stream subscriptions, reconnects and resync timers. Consumers discard the instance afterward; pending metadata reads may finish. |
+| `stop()` | Idempotently stops stream subscriptions, reconnects, resync timers, and the Hook journal watcher. Consumers discard the instance afterward; pending metadata reads may finish. |
 
 Reader/runtime factories and platform can be injected for boundary tests. Normal
 application startup uses the real implementations. Sample mode uses its stable
@@ -57,7 +58,8 @@ Snapshots retain `source` (`ready`, `stale`, `unavailable`), `sample`,
 `runtimeAvailable`, `unreadAvailable`, `attentionAvailable` where applicable,
 and `sessions`. They also include `monitoring: { status, code }`: the current
 source health, independent of individual session runtime. Status is `connecting`,
-`connected`, `reconnecting`, `unavailable`, `idle` (no local sessions), or `sample`.
+`connected`, `hooks`, `limited` (saved unread only), `reconnecting`, `unavailable`, `idle`
+(no local sessions), or `sample`.
 The code is a safe diagnostic identifier or `null`; the renderer maps it to
 fixed user-facing text and never displays raw exceptions or conversation data.
 
@@ -68,6 +70,13 @@ Supported snapshots clear the matching stream error. A successful handshake
 alone does not establish healthy monitoring until native state arrives.
 An unloaded/Unknown session or a session's `systemError` is not a source failure.
 
+Hook signals are used for matching local Codex Desktop session IDs without known
+IPC runtime. The Inbox never creates sessions from Hook payloads alone. A local
+watcher signals updates and the existing refresh interval covers missed changes.
+The receiver stores normalized lifecycle events and the IDs needed to match
+specific turns and input cards. It returns an empty Hook response. Installation
+and trust are handled by the user in Codex.
+
 Each session retains its raw `id`, `title`, `cwd`, `projectId`,
 `project`, `lastActivity`, `runtime` and `unread`.
 
@@ -75,6 +84,9 @@ Runtime values remain `running`, `approval`, `input`, `idle`, `error`, `unknown`
 Unread is `true`, `false` or `null` when unverified. Missing evidence stays unknown;
 unread or silence must not be used to infer completion. Source-specific
 availability follows the existing evidence rules, including sample-mode flags.
+Explicit IPC unread takes precedence over compatible saved receipts. Saved
+receipts require a supported schema and apply only to sessions created during or
+after the durable receipt rollout. Hooks do not supply an unread flag.
 
 Providers treat discovery records as read-only. Native projections create new
 session records; the main process adds local `pinned` state. Codex IDs are not
@@ -99,6 +111,6 @@ Codex IDs in this single-source implementation.
 - `npm run test:error-ui`: isolated real Electron status and resynchronization checks.
 - `npm run test:avatar-ui`: sample mode, themes, identity, rendering and public-file checks.
 - `npm run test:taskbar`: native badge updates through simulated provider events.
-- `npm run check:local`: real read-only discovery and native monitoring for eight
+- `npm run check:local`: real read-only discovery and live monitoring for eight
   seconds, using the same provider as the application. Prints aggregate counts
   only and stops the provider on completion or failure.

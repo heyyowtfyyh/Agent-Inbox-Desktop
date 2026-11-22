@@ -11,20 +11,22 @@ try {
   const initial = await provider.readSnapshot();
   if (initial.source !== 'ready') throw new Error('The local Codex session database is unavailable or incompatible.');
   if (!initial.sessions.length) throw new Error('No local desktop sessions are available to verify monitoring.');
-  // Stay connected briefly to collect native state, including any live changes.
+  // Stay connected briefly to collect live changes.
   await setTimeout(8_000);
   const snapshot = await provider.readSnapshot();
   if (snapshot.source !== 'ready') throw new Error('The local Codex session source became unavailable.');
   const statuses = {};
-  let nativeUnread = 0;
+  let knownUnread = 0;
   for (const session of snapshot.sessions) {
     const status = session.runtime;
     statuses[status] = (statuses[status] ?? 0) + 1;
-    if (session.unread !== null) nativeUnread++;
+    if (session.unread !== null) knownUnread++;
   }
-  console.log(JSON.stringify({ sessions: snapshot.sessions.length, statuses, nativeUnread, changes }, null, 2));
-  if (!nativeUnread && snapshot.sessions.every(session => session.runtime === 'unknown')) {
-    throw new Error('No verifiable native state received. Check Codex Desktop and the configured pipe.');
+  console.log(JSON.stringify({
+    sessions: snapshot.sessions.length, monitoring: snapshot.monitoring, statuses, knownUnread, changes,
+  }, null, 2));
+  if (!snapshot.runtimeAvailable && !(knownUnread && snapshot.monitoring.status === 'connected')) {
+    throw new Error('No live state received. Check Codex Desktop or set up Hooks and send a new message.');
   }
 } finally {
   provider.stop();
