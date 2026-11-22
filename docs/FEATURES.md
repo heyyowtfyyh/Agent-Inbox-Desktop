@@ -51,9 +51,10 @@ can also have an unread result. Classify runtime using the following evidence.
   time since last activity alone cannot establish another state.
 
 The two waiting states share the **Needs attention** summary and amber styling.
-Inbox cards label both waiting states **User input**. The native **Unread**
-state is tracked independently. Turn completion describes one agent turn and
-leaves overall task progress unspecified.
+Inbox cards show **User input** for pending questions and **Waiting for approval**
+for pending approvals. The native **Unread** state is tracked independently.
+Turn completion describes one agent turn and leaves overall task progress
+unspecified.
 
 While the stream reports an active runtime, request a current snapshot every
 10 seconds and when its native read-state notification or unread value changes.
@@ -68,13 +69,15 @@ Idle; the current runtime snapshot remains the source of truth.
   inactivity timestamp is available. Use the card badge rules below to display
   runtime and unread evidence.
 - With an asynchronous option card or manual command approval pending in a
-  background chat, reconnect and verify that **User input** is restored. Answer
-  the question or decline the approval, then verify that the waiting badge
-  clears as soon as the request is resolved.
+  background chat, reconnect and verify that **User input** or **Waiting for
+  approval**, respectively, is restored. Answer the question or decline the
+  approval, then verify that the waiting badge clears as soon as the request
+  is resolved.
 - Each **Inbox** card displays exactly one status badge. Show **Running**,
-  **User input**, or **Error** when applicable. For an **Idle** or **Unknown**
-  session with verified unread activity, show **Unread**. The unread count and
-  filter use the native unread state independently of the displayed badge.
+  **Waiting for approval**, **User input**, or **Error** when applicable. For
+  an **Idle** or **Unknown** session with verified unread activity, show
+  **Unread**. The unread count and filter use the native unread state
+  independently of the displayed badge.
 
 ### Native unread detection
 

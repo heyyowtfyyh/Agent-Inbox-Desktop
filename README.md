@@ -41,7 +41,8 @@ Unread is an independent flag and can coexist with Running. An unread result doe
 | State | Meaning |
 | --- | --- |
 | Running | A live signal indicates that work is in progress. |
-| User input / Needs attention | Waiting for an answer or action approval. |
+| Waiting for approval | An approval request is pending. |
+| User input | A question is waiting for your answer. |
 | Idle | A live signal indicates that the session is idle. |
 | Error | A native `systemError` state was received. |
 | Unknown | There is insufficient evidence to determine the session state. |

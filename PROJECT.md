@@ -24,10 +24,10 @@ across projects without cycling through conversations.
 The Phase 1 prototype follows the Graphite Figma design and uses Electron with
 HTML, CSS, and JavaScript. On the tested Windows installation, it follows live
 Codex sessions through the local `codex-ipc` pipe. It shows **User input** for
-pending asynchronous option cards and manual command approvals. Each Inbox card
-shows one status badge. **Pin** keeps a session in Inbox after it becomes idle
-and read. Pins are stored locally by session ID and survive an Agent Inbox
-restart.
+pending option cards and **Waiting for approval** for pending approvals. Each
+Inbox card shows one status badge. **Pin** keeps a session in Inbox after it
+becomes idle and read. Pins are stored locally by session ID and survive an
+Agent Inbox restart.
 
 In PowerShell on Windows with Node.js 24 or newer, run `npm.cmd ci`, then
 `npm.cmd start` to read local sessions or `npm.cmd run demo` to try the app
